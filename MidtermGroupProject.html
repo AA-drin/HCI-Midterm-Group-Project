@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warehouse Inventory & Order Management</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="MidtermGroupProject.css">
+</head>
+<body>
+<main class="app-container">
+  <!-- ========== LOGIN SCREEN ========== -->
+  <section id="loginScreen" class="login-screen" aria-labelledby="login-heading">
+    <article class="login-card">
+      <header>
+        <h1 id="login-heading">Warehouse<span class="brand-accent">Flow</span></h1>
+        <p class="subhead">
+          <i class="fas fa-boxes" aria-hidden="true"></i> Inventory & Order Management
+        </p>
+      </header>
+
+      <form id="loginForm" novalidate>
+        <fieldset class="no-border">
+          <legend class="sr-only">Login credentials</legend>
+
+          <div class="form-group">
+            <label for="username" class="required">Username or Email</label>
+            <input type="text" id="username" name="username" placeholder="e.g. kimpogi123@gmail.com" autocomplete="username" required>
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="required">Password</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+          </div>
+
+          <output id="loginError" class="error-message" role="alert" aria-live="polite"></output>
+        </fieldset>
+
+        <div class="login-actions">
+          <button type="submit" class="btn btn-primary" id="loginBtn">
+            <i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i> Log in
+          </button>
+        </div>
+      </form>
+
+      <aside class="demo-hint">
+        <i class="fas fa-circle-info" aria-hidden="true"></i>
+        Demo credentials: <strong>kimpogi123@gmail.com</strong> / <strong>kimpogi123</strong>
+      </aside>
+    </article>
+  </section>
+
+  <!-- ========== MAIN APPLICATION ========== -->
+  <section id="mainApp" class="main-app" aria-label="Main application">
+    <nav class="sidebar" aria-label="Primary navigation">
+      <header class="brand">
+        <i class="fas fa-warehouse" aria-hidden="true"></i>
+        <span>WarehouseFlow</span>
+      </header>
+
+      <menu class="nav-menu">
+        <li><button class="nav-item active" data-panel="dashboard" aria-current="page"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Dashboard</span></button></li>
+        <li><button class="nav-item" data-panel="inventory"><i class="fas fa-boxes" aria-hidden="true"></i><span>Inventory</span></button></li>
+        <li><button class="nav-item" data-panel="receiving"><i class="fas fa-truck-ramp-box" aria-hidden="true"></i><span>Receiving</span></button></li>
+        <li><button class="nav-item" data-panel="orders"><i class="fas fa-clipboard-list" aria-hidden="true"></i><span>Orders / Picking</span></button></li>
+        <li><button class="nav-item" data-panel="movement"><i class="fas fa-arrow-right-arrow-left" aria-hidden="true"></i><span>Stock Movement</span></button></li>
+        <li><button class="nav-item" data-panel="reports"><i class="fas fa-chart-bar" aria-hidden="true"></i><span>Reports & Alerts</span></button></li>
+      </menu>
+
+      <footer class="user-info">
+        <figure class="user-badge">
+          <i class="fas fa-user-circle" aria-hidden="true"></i>
+          <figcaption>Kim Pogi</figcaption>
+        </figure>
+        <button class="nav-item logout" id="logoutBtn">
+          <i class="fas fa-sign-out-alt" aria-hidden="true"></i><span>Logout</span>
+        </button>
+      </footer>
+    </nav>
+
+    <section class="content-area">
+      <header class="top-bar">
+        <h2 id="panelTitle">Warehouse Dashboard</h2>
+        <div class="actions">
+          <button class="btn btn-sm btn-secondary" id="globalRefreshBtn">
+            <i class="fas fa-rotate" aria-hidden="true"></i> Refresh
+          </button>
+        </div>
+      </header>
+
+      <!-- ===== DASHBOARD ===== -->
+      <article id="panel-dashboard" class="panel active" aria-labelledby="panelTitle">
+        <section class="card-grid" aria-label="Warehouse summary statistics">
+          <article class="stat-card">
+            <span class="label">Total Products</span>
+            <data class="value" value="0">0</data>
+            <span class="trend"><i class="fas fa-arrow-up" aria-hidden="true"></i> —</span>
+          </article>
+          <article class="stat-card">
+            <span class="label">Available Stock</span>
+            <data class="value" value="0">0</data>
+            <span class="trend">units</span>
+          </article>
+          <article class="stat-card warning">
+            <span class="label">Low-stock Products</span>
+            <data class="value" value="0">0</data>
+            <span class="trend"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> —</span>
+          </article>
+          <article class="stat-card">
+            <span class="label">Incoming Deliveries</span>
+            <data class="value" value="0">0</data>
+            <span class="trend">today</span>
+          </article>
+        </section>
+
+        <div class="dashboard-tables">
+          <section class="dashboard-col-main">
+            <h3>Pending Orders</h3>
+            <table>
+              <caption class="sr-only">List of pending orders</caption>
+              <thead>
+                <tr><th scope="col">Order ID</th><th scope="col">Customer</th><th scope="col">Status</th><th scope="col">Items</th></tr>
+              </thead>
+              <tbody id="dashboardOrdersBody">
+                <tr class="empty-row"><td colspan="4">No pending orders.</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <aside class="dashboard-col-side">
+            <h3>Recent Activities</h3>
+            <ul class="activity-list" id="activityList">
+              <li class="empty-row">No recent activities.</li>
+            </ul>
+          </aside>
+        </div>
+      </article>
+
+      <!-- ===== INVENTORY ===== -->
+      <article id="panel-inventory" class="panel" aria-labelledby="panelTitle">
+        <header class="action-bar">
+          <search class="search-box">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="search" id="inventorySearch" placeholder="Search by product name..." aria-label="Search products by name">
+          </search>
+          <div class="action-buttons">
+            <div class="filter-dropdown">
+              <button class="btn btn-sm btn-secondary" id="filterToggleBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-filter" aria-hidden="true"></i>
+                <span id="filterLabel">All Categories</span>
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+              </button>
+              <menu class="filter-menu" id="filterMenu" hidden>
+                <li><button data-filter="all" class="filter-option active">All Categories</button></li>
+                <li><button data-filter="Electronics" class="filter-option">Electronics</button></li>
+                <li><button data-filter="Accessories" class="filter-option">Accessories</button></li>
+                <li><button data-filter="Packaging" class="filter-option">Packaging</button></li>
+                <li><button data-filter="Furniture" class="filter-option">Furniture</button></li>
+                <li><button data-filter="Tools" class="filter-option">Tools</button></li>
+              </menu>
+            </div>
+            <button class="btn btn-sm btn-primary" id="addProductBtn" type="button">
+              <i class="fas fa-plus" aria-hidden="true"></i> Add Product
+            </button>
+          </div>
+        </header>
+
+        <p class="table-hint">
+          <i class="fas fa-circle-info" aria-hidden="true"></i>
+          Click any row to view full product details.
+        </p>
+
+        <table id="inventoryTable">
+          <caption class="sr-only">Product inventory list</caption>
+          <thead>
+            <tr>
+              <th scope="col">SKU</th>
+              <th scope="col">Product Name</th>
+              <th scope="col">Category</th>
+              <th scope="col">Qty</th>
+              <th scope="col">Location</th>
+              <th scope="col">Supplier</th>
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryBody">
+            <tr class="empty-row"><td colspan="8">No products in inventory.</td></tr>
+          </tbody>
+        </table>
+
+        <footer class="table-footer">
+          <p id="inventoryCount">Showing 0 of 0 products</p>
+          <nav class="pagination" aria-label="Product pagination">
+            <button class="btn btn-sm btn-secondary" disabled>Previous</button>
+            <button class="btn btn-sm btn-secondary" disabled>Next</button>
+          </nav>
+        </footer>
+      </article>
+
+      <!-- ===== RECEIVING ===== -->
+      <article id="panel-receiving" class="panel" aria-labelledby="panelTitle">
+        <div class="receiving-layout">
+          <form class="form-card receiving-form" id="receivingForm" novalidate>
+            <header class="receiving-header">
+              <h3><i class="fas fa-truck-ramp-box" aria-hidden="true"></i> Record Incoming Goods</h3>
+              <p class="receiving-subhead">Fill in the delivery details. You'll review before confirming.</p>
+            </header>
+
+            <div class="form-row">
+              <label for="supplier">Supplier <span class="req">*</span></label>
+              <select id="supplier" required>
+                <option value="" disabled selected>Select a supplier</option>
+                <option>AprilAnne Industries</option>
+                <option>Darwin Global Co.</option>
+                <option>Kimmeng Global Industries</option>
+                <option>Kian Trading</option>
+                <option>Frecia Enterprises</option>
+                <option>Eirene Corporation</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label for="deliveryNo">Delivery Number <span class="req">*</span></label>
+              <input type="text" id="deliveryNo" placeholder="e.g. PO-2025-044" required>
+            </div>
+
+            <div class="form-row">
+              <label for="product">Product <span class="req">*</span></label>
+              <select id="product" required>
+                <option value="" disabled selected>Select a product</option>
+              </select>
+              <small class="field-hint">Products are pulled from your Inventory list.</small>
+            </div>
+
+            <div class="form-row">
+              <label for="quantity">Quantity <span class="req">*</span></label>
+              <input type="number" id="quantity" placeholder="0" min="1" value="" required>
+            </div>
+
+            <div class="form-row">
+              <label for="recvDate">Date <span class="req">*</span></label>
+              <input type="date" id="recvDate" required>
+            </div>
+
+            <div class="form-row">
+              <label for="condition">Condition <span class="req">*</span></label>
+              <select id="condition" required>
+                <option value="" disabled selected>Select a condition</option>
+                <option>Good</option>
+                <option>Damaged</option>
+                <option>Partial</option>
+              </select>
+            </div>
+
+            <output id="receivingError" class="error-message" role="alert" aria-live="polite"></output>
+
+            <footer class="form-actions">
+              <button type="submit" class="btn btn-primary" id="reviewReceiptBtn">
+                <i class="fas fa-clipboard-check" aria-hidden="true"></i> Review Receipt
+              </button>
+              <button type="button" class="btn btn-secondary" id="cancelReceiving">Cancel</button>
+            </footer>
+          </form>
+
+          <aside class="receiving-review" id="receivingReview" aria-live="polite">
+            <header class="receiving-review-header">
+              <h3><i class="fas fa-clipboard-list" aria-hidden="true"></i> Review Summary</h3>
+              <p class="receiving-review-subhead">This updates live as you fill in the form.</p>
+            </header>
+
+            <dl class="review-grid">
+              <div class="review-item">
+                <dt><i class="fas fa-truck-field" aria-hidden="true"></i> Supplier</dt>
+                <dd id="reviewSupplier" class="empty">—</dd>
+              </div>
+              <div class="review-item">
+                <dt><i class="fas fa-receipt" aria-hidden="true"></i> Delivery No.</dt>
+                <dd id="reviewDeliveryNo" class="empty">—</dd>
+              </div>
+              <div class="review-item">
+                <dt><i class="fas fa-box" aria-hidden="true"></i> Product</dt>
+                <dd id="reviewProduct" class="empty">—</dd>
+              </div>
+              <div class="review-item">
+                <dt><i class="fas fa-cubes" aria-hidden="true"></i> Quantity</dt>
+                <dd id="reviewQuantity" class="empty">—</dd>
+              </div>
+              <div class="review-item">
+                <dt><i class="fas fa-calendar-day" aria-hidden="true"></i> Date</dt>
+                <dd id="reviewDate" class="empty">—</dd>
+              </div>
+              <div class="review-item">
+                <dt><i class="fas fa-circle-check" aria-hidden="true"></i> Condition</dt>
+                <dd id="reviewCondition" class="empty">—</dd>
+              </div>
+            </dl>
+
+            <section class="review-impact">
+              <h4><i class="fas fa-arrow-right-long" aria-hidden="true"></i> What happens when you confirm</h4>
+              <ol class="impact-steps" id="impactSteps">
+                <li>Select a product and enter a quantity to see the impact on stock.</li>
+              </ol>
+            </section>
+
+            <aside class="review-note">
+              <i class="fas fa-circle-info" aria-hidden="true"></i>
+              <p>Nothing is saved until you confirm on the next step.</p>
+            </aside>
+          </aside>
+        </div>
+      </article>
+
+      <!-- ===== ORDERS / PICKING ===== -->
+      <article id="panel-orders" class="panel" aria-labelledby="panelTitle">
+        <header class="orders-toolbar">
+          <div class="order-tabs" role="tablist" aria-label="Filter orders by status">
+            <button class="order-tab active" data-order-filter="all" role="tab" aria-selected="true">
+              <i class="fas fa-list" aria-hidden="true"></i> All
+              <span class="tab-count" id="tabCountAll">0</span>
+            </button>
+            <button class="order-tab" data-order-filter="Pending" role="tab" aria-selected="false">
+              <i class="fas fa-hourglass-half" aria-hidden="true"></i> Pending
+              <span class="tab-count" id="tabCountPending">0</span>
+            </button>
+            <button class="order-tab" data-order-filter="Picking" role="tab" aria-selected="false">
+              <i class="fas fa-hand-pointer" aria-hidden="true"></i> Picking
+              <span class="tab-count" id="tabCountPicking">0</span>
+            </button>
+            <button class="order-tab" data-order-filter="Ready" role="tab" aria-selected="false">
+              <i class="fas fa-box-open" aria-hidden="true"></i> Ready
+              <span class="tab-count" id="tabCountReady">0</span>
+            </button>
+            <button class="order-tab" data-order-filter="Completed" role="tab" aria-selected="false">
+              <i class="fas fa-circle-check" aria-hidden="true"></i> Completed
+              <span class="tab-count" id="tabCountCompleted">0</span>
+            </button>
+          </div>
+
+          <div class="orders-toolbar-actions">
+            <search class="search-box">
+              <i class="fas fa-search" aria-hidden="true"></i>
+              <input type="search" id="orderSearch" placeholder="Search orders..." aria-label="Search orders">
+            </search>
+            <button class="btn btn-sm btn-primary" id="newOrderBtn" type="button">
+              <i class="fas fa-plus" aria-hidden="true"></i> New Order
+            </button>
+          </div>
+        </header>
+
+        <p class="table-hint">
+          <i class="fas fa-circle-info" aria-hidden="true"></i>
+          Click any row to open the picking workspace.
+        </p>
+
+        <table id="ordersTable">
+          <caption class="sr-only">Orders list</caption>
+          <thead>
+            <tr>
+              <th scope="col">Order ID</th>
+              <th scope="col">Customer</th>
+              <th scope="col">Items</th>
+              <th scope="col">Created</th>
+              <th scope="col">Status</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody">
+            <tr class="empty-row"><td colspan="6">No orders available.</td></tr>
+          </tbody>
+        </table>
+
+        <section class="order-details" id="orderDetailsSection" style="display:none;">
+          <header class="order-details-header">
+            <div>
+              <h4 id="orderDetailsTitle">Order Details</h4>
+              <p class="order-meta" id="orderMeta"></p>
+            </div>
+            <button class="btn btn-sm btn-secondary" data-order-action="close-details" type="button">
+              <i class="fas fa-times"></i> Close
+            </button>
+          </header>
+
+          <ol class="status-flow" id="orderStatusFlow" aria-label="Order progress">
+            <li class="status-step" data-step="Pending">Pending</li>
+            <li class="status-step" data-step="Picking">Picking</li>
+            <li class="status-step" data-step="Ready">Ready</li>
+            <li class="status-step" data-step="Completed">Completed</li>
+          </ol>
+
+          <aside class="picking-progress" id="pickingProgress">
+            <div class="progress-bar-wrapper">
+              <div class="progress-bar" id="progressBar" style="width:0%"></div>
+            </div>
+            <p class="progress-text" id="progressText">0 of 0 items picked</p>
+          </aside>
+
+          <aside class="stock-warning" id="stockWarning" hidden>
+            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            <p id="stockWarningText"></p>
+          </aside>
+
+          <table>
+            <caption class="sr-only">Order picking items</caption>
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col">Required</th>
+                <th scope="col">In Stock</th>
+                <th scope="col">Status</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="orderLinesBody">
+              <tr class="empty-row"><td colspan="5">No items to pick.</td></tr>
+            </tbody>
+          </table>
+
+          <footer class="order-actions" id="orderActions"></footer>
+        </section>
+      </article>
+
+      <!-- ===== STOCK MOVEMENT & TRACKING ===== -->
+      <article id="panel-movement" class="panel" aria-labelledby="panelTitle">
+        <section class="card-grid" aria-label="Movement summary statistics">
+          <article class="stat-card">
+            <span class="label">Total Movements</span>
+            <data class="value" id="mvTotal" value="0">0</data>
+            <span class="trend"><i class="fas fa-list" aria-hidden="true"></i> all records</span>
+          </article>
+          <article class="stat-card">
+            <span class="label">Received</span>
+            <data class="value" id="mvReceived" value="0">0</data>
+            <span class="trend"><i class="fas fa-arrow-down" aria-hidden="true"></i> stock in</span>
+          </article>
+          <article class="stat-card warning">
+            <span class="label">Released / Adjusted</span>
+            <data class="value" id="mvReleased" value="0">0</data>
+            <span class="trend"><i class="fas fa-arrow-up" aria-hidden="true"></i> stock out / changes</span>
+          </article>
+          <article class="stat-card">
+            <span class="label">Transferred</span>
+            <data class="value" id="mvTransferred" value="0">0</data>
+            <span class="trend"><i class="fas fa-right-left" aria-hidden="true"></i> between locations</span>
+          </article>
+        </section>
+
+        <header class="orders-toolbar">
+          <div class="order-tabs" role="tablist" aria-label="Filter by movement type">
+            <button class="order-tab active" data-mv-filter="all" role="tab" aria-selected="true">
+              <i class="fas fa-list" aria-hidden="true"></i> All
+            </button>
+            <button class="order-tab" data-mv-filter="Received" role="tab" aria-selected="false">
+              <i class="fas fa-arrow-down" aria-hidden="true"></i> Received
+            </button>
+            <button class="order-tab" data-mv-filter="Released" role="tab" aria-selected="false">
+              <i class="fas fa-arrow-up" aria-hidden="true"></i> Released
+            </button>
+            <button class="order-tab" data-mv-filter="Transferred" role="tab" aria-selected="false">
+              <i class="fas fa-right-left" aria-hidden="true"></i> Transferred
+            </button>
+            <button class="order-tab" data-mv-filter="Adjusted" role="tab" aria-selected="false">
+              <i class="fas fa-sliders" aria-hidden="true"></i> Adjusted
+            </button>
+          </div>
+
+          <div class="orders-toolbar-actions">
+            <search class="search-box">
+              <i class="fas fa-search" aria-hidden="true"></i>
+              <input type="search" id="movementSearch" placeholder="Search by product or user..." aria-label="Search stock movements">
+            </search>
+            <button class="btn btn-sm btn-secondary" id="clearMovementFilters" type="button">
+              <i class="fas fa-eraser" aria-hidden="true"></i> Clear
+            </button>
+          </div>
+        </header>
+
+        <p class="table-hint">
+          <i class="fas fa-circle-info" aria-hidden="true"></i>
+          Click any row to view full movement details, including the before-and-after stock.
+        </p>
+
+        <table id="movementTable">
+          <caption class="sr-only">Stock movement history</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date/Time</th>
+              <th scope="col">Product</th>
+              <th scope="col">Type</th>
+              <th scope="col">Quantity</th>
+              <th scope="col">Prev Stock</th>
+              <th scope="col">New Stock</th>
+              <th scope="col">User</th>
+            </tr>
+          </thead>
+          <tbody id="movementBody">
+            <tr class="empty-row"><td colspan="7">No stock movements recorded.</td></tr>
+          </tbody>
+        </table>
+
+        <footer class="table-footer">
+          <p id="movementCount">Showing 0 of 0 movements</p>
+        </footer>
+      </article>
+
+      <!-- ===== REPORTS & NOTIFICATIONS ===== -->
+      <article id="panel-reports" class="panel" aria-labelledby="panelTitle">
+
+        <!-- Top-level tabs -->
+        <header class="orders-toolbar">
+          <div class="order-tabs" role="tablist" aria-label="Reports and notifications">
+            <button class="order-tab active" data-reports-tab="notifications" role="tab" aria-selected="true">
+              <i class="fas fa-bell" aria-hidden="true"></i> Notifications
+              <span class="tab-count" id="notifTabCount">0</span>
+            </button>
+            <button class="order-tab" data-reports-tab="inventory" role="tab" aria-selected="false">
+              <i class="fas fa-boxes" aria-hidden="true"></i> Inventory Report
+            </button>
+            <button class="order-tab" data-reports-tab="lowstock" role="tab" aria-selected="false">
+              <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Low-stock Report
+            </button>
+            <button class="order-tab" data-reports-tab="movement" role="tab" aria-selected="false">
+              <i class="fas fa-arrow-right-arrow-left" aria-hidden="true"></i> Stock Movement Report
+            </button>
+            <button class="order-tab" data-reports-tab="orders" role="tab" aria-selected="false">
+              <i class="fas fa-clipboard-list" aria-hidden="true"></i> Order Report
+            </button>
+          </div>
+
+          <div class="orders-toolbar-actions">
+            <button class="btn btn-sm btn-secondary" id="exportReportBtn" type="button">
+              <i class="fas fa-download" aria-hidden="true"></i> Export CSV
+            </button>
+          </div>
+        </header>
+
+        <!-- ============ TAB: NOTIFICATIONS ============ -->
+        <section class="reports-panel active" data-reports-content="notifications">
+          <!-- Notification summary cards -->
+          <section class="card-grid" aria-label="Notification summary">
+            <article class="stat-card warning">
+              <span class="label">Low-stock alerts</span>
+              <data class="value" id="notifLowStock" value="0">0</data>
+              <span class="trend"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> need restock</span>
+            </article>
+            <article class="stat-card">
+              <span class="label">Pending orders</span>
+              <data class="value" id="notifPendingOrders" value="0">0</data>
+              <span class="trend">need picking</span>
+            </article>
+            <article class="stat-card">
+              <span class="label">New deliveries today</span>
+              <data class="value" id="notifNewDeliveries" value="0">0</data>
+              <span class="trend"><i class="fas fa-truck" aria-hidden="true"></i> received</span>
+            </article>
+            <article class="stat-card">
+              <span class="label">Completed orders</span>
+              <data class="value" id="notifCompletedOrders" value="0">0</data>
+              <span class="trend"><i class="fas fa-circle-check" aria-hidden="true"></i> fulfilled</span>
+            </article>
+          </section>
+
+          <!-- Notification filter tabs -->
+          <div class="notif-filters">
+            <button class="notif-filter active" data-notif-filter="all">
+              <i class="fas fa-list" aria-hidden="true"></i> All
+            </button>
+            <button class="notif-filter" data-notif-filter="lowstock">
+              <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Low Stock
+            </button>
+            <button class="notif-filter" data-notif-filter="order">
+              <i class="fas fa-clipboard-list" aria-hidden="true"></i> Orders
+            </button>
+            <button class="notif-filter" data-notif-filter="delivery">
+              <i class="fas fa-truck" aria-hidden="true"></i> Deliveries
+            </button>
+            <button class="notif-filter" data-notif-filter="adjustment">
+              <i class="fas fa-sliders" aria-hidden="true"></i> Adjustments
+            </button>
+          </div>
+
+          <ul class="notification-list notification-list-detailed" id="notificationListDetailed">
+            <li class="empty-row">No notifications.</li>
+          </ul>
+        </section>
+
+        <!-- ============ TAB: INVENTORY REPORT ============ -->
+        <section class="reports-panel" data-reports-content="inventory">
+          <div class="report-summary-grid">
+            <article class="report-card">
+              <span class="report-card-label">Total Products</span>
+              <span class="report-card-value" id="rptTotalProducts">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Total Quantity</span>
+              <span class="report-card-value" id="rptTotalQty">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Categories</span>
+              <span class="report-card-value" id="rptCategoryCount">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Suppliers</span>
+              <span class="report-card-value" id="rptSupplierCount">0</span>
+            </article>
+          </div>
+
+          <h3 class="report-section-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Breakdown by Category</h3>
+          <table>
+            <caption class="sr-only">Inventory report by category</caption>
+            <thead>
+              <tr>
+                <th scope="col">Category</th>
+                <th scope="col">Products</th>
+                <th scope="col">Total Qty</th>
+                <th scope="col">Low Stock</th>
+                <th scope="col">Out of Stock</th>
+              </tr>
+            </thead>
+            <tbody id="rptInventoryBody">
+              <tr class="empty-row"><td colspan="5">No report data available.</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="report-section-title"><i class="fas fa-boxes" aria-hidden="true"></i> Full Product List</h3>
+          <table>
+            <caption class="sr-only">Full product list</caption>
+            <thead>
+              <tr>
+                <th scope="col">SKU</th>
+                <th scope="col">Product</th>
+                <th scope="col">Category</th>
+                <th scope="col">Qty</th>
+                <th scope="col">Status</th>
+                <th scope="col">Supplier</th>
+              </tr>
+            </thead>
+            <tbody id="rptInventoryListBody">
+              <tr class="empty-row"><td colspan="6">No products in inventory.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ============ TAB: LOW-STOCK REPORT ============ -->
+        <section class="reports-panel" data-reports-content="lowstock">
+          <div class="report-summary-grid">
+            <article class="report-card warning">
+              <span class="report-card-label">Low-stock Items</span>
+              <span class="report-card-value" id="rptLowCount">0</span>
+            </article>
+            <article class="report-card danger">
+              <span class="report-card-label">Out of Stock</span>
+              <span class="report-card-value" id="rptOutCount">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Needs Restocking</span>
+              <span class="report-card-value" id="rptRestockCount">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Highest Shortage</span>
+              <span class="report-card-value" id="rptHighestShortage">—</span>
+            </article>
+          </div>
+
+          <h3 class="report-section-title"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Products Requiring Attention</h3>
+          <table>
+            <caption class="sr-only">Low-stock report</caption>
+            <thead>
+              <tr>
+                <th scope="col">SKU</th>
+                <th scope="col">Product</th>
+                <th scope="col">Category</th>
+                <th scope="col">Qty on Hand</th>
+                <th scope="col">Status</th>
+                <th scope="col">Supplier</th>
+              </tr>
+            </thead>
+            <tbody id="rptLowStockBody">
+              <tr class="empty-row"><td colspan="6">No low-stock items.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ============ TAB: STOCK MOVEMENT REPORT ============ -->
+        <section class="reports-panel" data-reports-content="movement">
+          <div class="report-summary-grid">
+            <article class="report-card">
+              <span class="report-card-label">Total Movements</span>
+              <span class="report-card-value" id="rptMvTotal">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Units Received</span>
+              <span class="report-card-value" id="rptMvIn">0</span>
+            </article>
+            <article class="report-card warning">
+              <span class="report-card-label">Units Released</span>
+              <span class="report-card-value" id="rptMvOut">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Net Change</span>
+              <span class="report-card-value" id="rptMvNet">0</span>
+            </article>
+          </div>
+
+          <h3 class="report-section-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Breakdown by Type</h3>
+          <table>
+            <caption class="sr-only">Movement report by type</caption>
+            <thead>
+              <tr>
+                <th scope="col">Movement Type</th>
+                <th scope="col">Count</th>
+                <th scope="col">Total Units</th>
+              </tr>
+            </thead>
+            <tbody id="rptMovementByTypeBody">
+              <tr class="empty-row"><td colspan="3">No movement data available.</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="report-section-title"><i class="fas fa-boxes" aria-hidden="true"></i> Movement by Product</h3>
+          <table>
+            <caption class="sr-only">Movement report by product</caption>
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col">Received</th>
+                <th scope="col">Released</th>
+                <th scope="col">Adjusted</th>
+                <th scope="col">Net</th>
+              </tr>
+            </thead>
+            <tbody id="rptMovementByProductBody">
+              <tr class="empty-row"><td colspan="5">No movement data available.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ============ TAB: ORDER REPORT ============ -->
+        <section class="reports-panel" data-reports-content="orders">
+          <div class="report-summary-grid">
+            <article class="report-card">
+              <span class="report-card-label">Total Orders</span>
+              <span class="report-card-value" id="rptOrderTotal">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Pending</span>
+              <span class="report-card-value" id="rptOrderPending">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Picking / Ready</span>
+              <span class="report-card-value" id="rptOrderInProgress">0</span>
+            </article>
+            <article class="report-card">
+              <span class="report-card-label">Completed</span>
+              <span class="report-card-value" id="rptOrderCompleted">0</span>
+            </article>
+          </div>
+
+          <h3 class="report-section-title"><i class="fas fa-layer-group" aria-hidden="true"></i> Breakdown by Status</h3>
+          <table>
+            <caption class="sr-only">Order report by status</caption>
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col">Orders</th>
+                <th scope="col">Total Items</th>
+              </tr>
+            </thead>
+            <tbody id="rptOrderByStatusBody">
+              <tr class="empty-row"><td colspan="3">No order data available.</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="report-section-title"><i class="fas fa-user-tie" aria-hidden="true"></i> Orders by Customer</h3>
+          <table>
+            <caption class="sr-only">Order report by customer</caption>
+            <thead>
+              <tr>
+                <th scope="col">Customer</th>
+                <th scope="col">Orders</th>
+                <th scope="col">Completed</th>
+                <th scope="col">In Progress</th>
+              </tr>
+            </thead>
+            <tbody id="rptOrderByCustomerBody">
+              <tr class="empty-row"><td colspan="4">No order data available.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+      </article>
+    </section>
+  </section>
+</main>
+
+<!-- VIEW PRODUCT DETAILS MODAL-->
+<div id="viewProductModal" class="modal-overlay">
+  <article class="modal-card">
+    <header class="modal-header">
+      <h3><i class="fas fa-box-open" aria-hidden="true"></i> Product Details</h3>
+      <button type="button" class="modal-close" data-close="viewProductModal" aria-label="Close product details">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <section class="modal-body">
+      <header class="product-details-header">
+        <div class="product-details-icon"><i class="fas fa-box" aria-hidden="true"></i></div>
+        <div>
+          <h2 id="detailProductName" class="product-details-name">—</h2>
+          <p id="detailProductSku" class="product-details-sku">—</p>
+        </div>
+        <span id="detailProductStatus" class="badge badge-info">—</span>
+      </header>
+
+      <dl class="product-details-grid">
+        <div class="detail-item">
+          <dt><i class="fas fa-tag" aria-hidden="true"></i> Category</dt>
+          <dd id="detailCategory">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-cubes" aria-hidden="true"></i> Quantity in Stock</dt>
+          <dd id="detailQuantity">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-location-dot" aria-hidden="true"></i> Warehouse Location</dt>
+          <dd id="detailLocation">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-truck-field" aria-hidden="true"></i> Supplier</dt>
+          <dd id="detailSupplier">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-circle-check" aria-hidden="true"></i> Stock Status</dt>
+          <dd id="detailStatusText">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-clock" aria-hidden="true"></i> Last Updated</dt>
+          <dd id="detailUpdated">—</dd>
+        </div>
+      </dl>
+    </section>
+
+    <footer class="modal-actions">
+      <button type="button" class="btn btn-secondary" data-close="viewProductModal">Close</button>
+      <button type="button" class="btn btn-primary" id="viewEditBtn">
+        <i class="fas fa-pen-to-square" aria-hidden="true"></i> Edit Product
+      </button>
+    </footer>
+  </article>
+</div>
+
+<!-- VIEW MOVEMENT DETAILS MODAL                                  -->
+<div id="viewMovementModal" class="modal-overlay">
+  <article class="modal-card modal-card-md">
+    <header class="modal-header">
+      <h3><i class="fas fa-arrow-right-arrow-left" aria-hidden="true"></i> Movement Details</h3>
+      <button type="button" class="modal-close" data-close="viewMovementModal" aria-label="Close movement details">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <section class="modal-body">
+      <header class="movement-details-header">
+        <div class="movement-details-icon" id="mvDetailIconWrapper">
+          <i class="fas fa-arrow-down" id="mvDetailIcon" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h2 class="product-details-name" id="mvDetailType">—</h2>
+          <p class="product-details-sku" id="mvDetailDateTime">—</p>
+        </div>
+        <span class="badge badge-info" id="mvDetailBadge">—</span>
+      </header>
+
+      <dl class="product-details-grid">
+        <div class="detail-item">
+          <dt><i class="fas fa-box" aria-hidden="true"></i> Product</dt>
+          <dd id="mvDetailProduct">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-cubes" aria-hidden="true"></i> Quantity Changed</dt>
+          <dd id="mvDetailQuantity">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-arrow-left" aria-hidden="true"></i> Previous Stock</dt>
+          <dd id="mvDetailPrev">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-arrow-right" aria-hidden="true"></i> Updated Stock</dt>
+          <dd id="mvDetailNew">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-user" aria-hidden="true"></i> Responsible User</dt>
+          <dd id="mvDetailUser">—</dd>
+        </div>
+        <div class="detail-item">
+          <dt><i class="fas fa-circle-info" aria-hidden="true"></i> Effect</dt>
+          <dd id="mvDetailEffect">—</dd>
+        </div>
+      </dl>
+
+      <aside class="review-impact">
+        <h4><i class="fas fa-diagram-project" aria-hidden="true"></i> How this changed current stock</h4>
+        <p class="impact-narrative" id="mvDetailNarrative">—</p>
+      </aside>
+    </section>
+
+    <footer class="modal-actions">
+      <button type="button" class="btn btn-secondary" data-close="viewMovementModal">Close</button>
+    </footer>
+  </article>
+</div>
+
+<!-- ADD PRODUCT MODAL-->
+<div id="addProductModal" class="modal-overlay">
+  <article class="modal-card">
+    <header class="modal-header">
+      <h3><i class="fas fa-plus-circle" aria-hidden="true"></i> Add New Product</h3>
+      <button type="button" class="modal-close" data-close="addProductModal" aria-label="Close add product dialog">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <form id="addProductForm" novalidate>
+      <fieldset class="no-border">
+        <legend class="sr-only">New product information</legend>
+
+        <div class="form-row">
+          <label for="newSku">SKU (auto-generated)</label>
+          <input type="text" id="newSku" readonly tabindex="-1">
+          <small class="field-hint">Assigned automatically by the system.</small>
+        </div>
+
+        <div class="form-row">
+          <label for="newProductName">Product Name <span class="req">*</span></label>
+          <input type="text" id="newProductName" placeholder="Product Name" required>
+        </div>
+
+        <div class="form-row">
+          <label for="newCategory">Category <span class="req">*</span></label>
+          <select id="newCategory" required>
+            <option value="" disabled selected>Select a category</option>
+            <option>Electronics</option>
+            <option>Accessories</option>
+            <option>Packaging</option>
+            <option>Furniture</option>
+            <option>Tools</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="newQuantity">Quantity <span class="req">*</span></label>
+          <input type="number" id="newQuantity" placeholder="0" min="0" value="0" required>
+        </div>
+
+        <div class="form-row">
+          <label for="newLocation">Location <span class="req">*</span></label>
+          <input type="text" id="newLocation" placeholder="e.g. A-12-3" required>
+          <small class="field-hint">Use aisle-rack-shelf format (e.g. A-12-3).</small>
+        </div>
+
+        <div class="form-row">
+          <label for="newSupplier">Supplier <span class="req">*</span></label>
+          <select id="newSupplier" required>
+            <option value="" disabled selected>Select a supplier</option>
+                <option>AprilAnne Industries</option>
+                <option>Darwin Global Co.</option>
+                <option>Kimmeng Global Industries</option>
+                <option>Kian Trading</option>
+                <option>Frecia Enterprises</option>
+                <option>Eirene Corporation</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="newStatus">Status (auto-computed)</label>
+          <input type="text" id="newStatus" readonly tabindex="-1" value="—">
+          <small class="field-hint">Determined by quantity: In Stock, Low Stock, or Out of Stock.</small>
+        </div>
+
+        <output id="addProductError" class="error-message" role="alert" aria-live="polite"></output>
+      </fieldset>
+
+      <footer class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close="addProductModal">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-check" aria-hidden="true"></i> Save Product
+        </button>
+      </footer>
+    </form>
+  </article>
+</div>
+
+
+<!-- EDIT PRODUCT MODAL-->
+<div id="editProductModal" class="modal-overlay">
+  <article class="modal-card">
+    <header class="modal-header">
+      <h3><i class="fas fa-pen-to-square" aria-hidden="true"></i> Edit Product</h3>
+      <button type="button" class="modal-close" data-close="editProductModal" aria-label="Close edit dialog">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <form id="editProductForm" novalidate>
+      <fieldset class="no-border">
+        <legend class="sr-only">Edit product information</legend>
+
+        <div class="form-row">
+          <label for="editSku">SKU</label>
+          <input type="text" id="editSku" readonly tabindex="-1">
+          <small class="field-hint">SKU cannot be changed.</small>
+        </div>
+
+        <div class="form-row">
+          <label for="editProductName">Product Name <span class="req">*</span></label>
+          <input type="text" id="editProductName" required>
+        </div>
+
+        <div class="form-row">
+          <label for="editCategory">Category <span class="req">*</span></label>
+          <select id="editCategory" required>
+            <option value="" disabled>Select a category</option>
+            <option>Electronics</option>
+            <option>Accessories</option>
+            <option>Packaging</option>
+            <option>Furniture</option>
+            <option>Tools</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="editQuantity">Quantity <span class="req">*</span></label>
+          <input type="number" id="editQuantity" min="0" required>
+        </div>
+
+        <div class="form-row">
+          <label for="editLocation">Location <span class="req">*</span></label>
+          <input type="text" id="editLocation" required>
+          <small class="field-hint">Use aisle-rack-shelf format (e.g. A-12-3).</small>
+        </div>
+
+        <div class="form-row">
+          <label for="editSupplier">Supplier <span class="req">*</span></label>
+          <select id="editSupplier" required>
+            <option value="" disabled>Select a supplier</option>
+            <option>AprilAnne Industries</option>
+                <option>Darwin Global Co.</option>
+                <option>Kimmeng Global Industries</option>
+                <option>Kian Trading</option>
+                <option>Frecia Enterprises</option>
+                <option>Eirene Corporation</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="editStatus">Status (auto-computed)</label>
+          <input type="text" id="editStatus" readonly tabindex="-1">
+        </div>
+
+        <output id="editProductError" class="error-message" role="alert" aria-live="polite"></output>
+      </fieldset>
+
+      <footer class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close="editProductModal">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-check" aria-hidden="true"></i> Save Changes
+        </button>
+      </footer>
+    </form>
+  </article>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL-->
+<div id="deleteConfirmModal" class="modal-overlay">
+  <article class="modal-card modal-card-sm">
+    <header class="modal-header modal-header-danger">
+      <h3><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Delete Product</h3>
+      <button type="button" class="modal-close" data-close="deleteConfirmModal" aria-label="Close delete dialog">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <section class="modal-body">
+      <p class="confirm-text">
+        Are you sure you want to delete <strong id="deleteProductName">this product</strong>?
+      </p>
+      <p class="confirm-subtext">
+        This action cannot be undone. The product will be permanently removed from the inventory.
+      </p>
+    </section>
+
+    <footer class="modal-actions">
+      <button type="button" class="btn btn-secondary" data-close="deleteConfirmModal">Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+        <i class="fas fa-trash" aria-hidden="true"></i> Yes, Delete
+      </button>
+    </footer>
+  </article>
+</div>
+
+
+<!-- RECEIVING CONFIRMATION MODAL-->
+<div id="receivingConfirmModal" class="modal-overlay">
+  <article class="modal-card modal-card-md">
+    <header class="modal-header">
+      <h3><i class="fas fa-clipboard-check" aria-hidden="true"></i> Confirm Receipt</h3>
+      <button type="button" class="modal-close" data-close="receivingConfirmModal" aria-label="Close confirmation">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <section class="modal-body">
+      <p class="confirm-text">Please review the delivery details below. Nothing is saved until you confirm.</p>
+
+      <dl class="receipt-review-grid">
+        <div class="review-item">
+          <dt><i class="fas fa-truck-field" aria-hidden="true"></i> Supplier</dt>
+          <dd id="confirmSupplier">—</dd>
+        </div>
+        <div class="review-item">
+          <dt><i class="fas fa-receipt" aria-hidden="true"></i> Delivery No.</dt>
+          <dd id="confirmDeliveryNo">—</dd>
+        </div>
+        <div class="review-item">
+          <dt><i class="fas fa-box" aria-hidden="true"></i> Product</dt>
+          <dd id="confirmProduct">—</dd>
+        </div>
+        <div class="review-item">
+          <dt><i class="fas fa-cubes" aria-hidden="true"></i> Quantity</dt>
+          <dd id="confirmQuantity">—</dd>
+        </div>
+        <div class="review-item">
+          <dt><i class="fas fa-calendar-day" aria-hidden="true"></i> Date</dt>
+          <dd id="confirmDate">—</dd>
+        </div>
+        <div class="review-item">
+          <dt><i class="fas fa-circle-check" aria-hidden="true"></i> Condition</dt>
+          <dd id="confirmCondition">—</dd>
+        </div>
+      </dl>
+
+      <aside class="receipt-impact">
+        <h4><i class="fas fa-arrow-right-long" aria-hidden="true"></i> After you confirm</h4>
+        <ol class="impact-steps" id="confirmImpactSteps">
+          <li>Stock will be updated.</li>
+        </ol>
+      </aside>
+    </section>
+
+    <footer class="modal-actions">
+      <button type="button" class="btn btn-secondary" data-close="receivingConfirmModal">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Go Back & Edit
+      </button>
+      <button type="button" class="btn btn-primary" id="confirmReceiptBtn">
+        <i class="fas fa-check" aria-hidden="true"></i> Yes, Confirm Receipt
+      </button>
+    </footer>
+  </article>
+</div>
+
+<!-- NEW ORDER MODAL                                              -->
+<div id="newOrderModal" class="modal-overlay">
+  <article class="modal-card" style="width: 640px;">
+    <header class="modal-header">
+      <h3><i class="fas fa-clipboard-plus" aria-hidden="true"></i> New Order</h3>
+      <button type="button" class="modal-close" data-close="newOrderModal" aria-label="Close new order dialog">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <form id="newOrderForm" novalidate>
+      <fieldset class="no-border">
+        <legend class="sr-only">New order information</legend>
+
+        <div class="form-row">
+          <label for="orderCustomer">Customer Name <span class="req">*</span></label>
+          <input type="text" id="orderCustomer" placeholder="e.g. Acme Corp" required>
+        </div>
+
+        <div class="form-row">
+          <label for="orderLineProduct">Add Product to Order <span class="req">*</span></label>
+          <div class="order-add-line">
+            <select id="orderLineProduct">
+              <option value="" disabled selected>Select a product</option>
+            </select>
+            <input type="number" id="orderLineQty" placeholder="Qty" min="1" value="1">
+            <button type="button" class="btn btn-secondary btn-sm" id="addOrderLineBtn">
+              <i class="fas fa-plus" aria-hidden="true"></i> Add
+            </button>
+          </div>
+          <small class="field-hint">Available stock is shown after the product name.</small>
+        </div>
+
+        <div class="order-lines-wrapper">
+          <h4 class="order-lines-title">Order Lines</h4>
+          <table class="order-lines-table">
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col">Qty</th>
+                <th scope="col">Available</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="orderLinesDraftBody">
+              <tr class="empty-row"><td colspan="4">No items added yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <output id="newOrderError" class="error-message" role="alert" aria-live="polite"></output>
+      </fieldset>
+
+      <footer class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close="newOrderModal">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-check" aria-hidden="true"></i> Create Order
+        </button>
+      </footer>
+    </form>
+  </article>
+</div>
+
+<!-- Toast -->
+<output id="toast" class="toast" role="status" aria-live="polite">
+  <i class="fas fa-circle-check" aria-hidden="true"></i>
+  <span id="toastMsg">Action completed</span>
+</output>
+
+<script src="MidtermGroupProject.js"></script>
+</body>
+</html>
