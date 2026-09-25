@@ -1,12 +1,8 @@
-// ============================================================
 // AUTHENTICATION CREDENTIALS
-// ============================================================
 const VALID_EMAIL = 'kimpogi123@gmail.com';
 const VALID_PASSWORD = 'kimpogi123';
 
-// ============================================================
 // STATE
-// ============================================================
 let products = [];
 let skuCounter = 1000;
 let pendingDeleteSku = null;
@@ -35,9 +31,7 @@ let pendingReceipt = null;
 
 const ACTIVE_ORDER_STATUSES = ['Pending', 'Picking', 'Ready'];
 
-// ============================================================
 // HELPERS
-// ============================================================
 function $(id) { return document.getElementById(id); }
 
 function computeStatus(qty) {
@@ -90,19 +84,16 @@ function formatDateHuman(inputDate) {
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
-// ============================================================
 // REFERENCE LOOKUPS — find orders that use a given product
-// ============================================================
 function findActiveOrderRefs(sku) {
   return orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status) && o.lines.some(l => l.sku === sku));
 }
 function findCompletedOrderRefs(sku) {
   return orders.filter(o => o.status === 'Completed' && o.lines.some(l => l.sku === sku));
-}
+} 
 
-// ============================================================
+
 // TOAST
-// ============================================================
 let toastTimeout;
 function showToast(message) {
   const toast = $('toast');
@@ -114,9 +105,7 @@ function showToast(message) {
   toastTimeout = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
-// ============================================================
 // INVENTORY
-// ============================================================
 function getFilteredProducts() {
   const term = inventorySearchTerm.toLowerCase().trim();
   return products.filter(p => {
@@ -193,9 +182,7 @@ function renderReceivingProductOptions() {
   sel.value = (current && products.some(p => p.sku === current)) ? current : '';
 }
 
-// ============================================================
 // MOVEMENT HELPERS
-// ============================================================
 function movementBadgeClass(type) {
   if (type === 'Received') return 'received';
   if (type === 'Released') return 'released';
@@ -303,9 +290,7 @@ function renderActivities() {
   });
 }
 
-// ============================================================
 // NOTIFICATIONS
-// ============================================================
 function buildNotifications() {
   const items = [];
   const now = formatDateTime(new Date());
@@ -450,9 +435,7 @@ function renderNotifications() {
   });
 }
 
-// ============================================================
 // REPORTS
-// ============================================================
 function renderInventoryReport() {
   const totalProducts = products.length;
   const totalQty = products.reduce((sum, p) => sum + p.quantity, 0);
@@ -707,9 +690,7 @@ function renderReports() {
   try { renderOrderReport(); } catch (e) { console.warn(e); }
 }
 
-// ============================================================
 // DASHBOARD
-// ============================================================
 function updateDashboardCounts() {
   const totalProducts = products.length;
   const availableStock = products.reduce((sum, p) => sum + p.quantity, 0);
@@ -751,9 +732,7 @@ function renderDashboardOrders() {
   });
 }
 
-// ============================================================
 // ORDERS
-// ============================================================
 function updateOrderTabCounts() {
   const counts = {
     all: orders.length,
@@ -980,9 +959,7 @@ function renderDraftOrderLines() {
   });
 }
 
-// ============================================================
 // MASTER RENDER
-// ============================================================
 function renderAll() {
   try { renderInventory(); } catch (e) { console.warn(e); }
   try { renderReceivingProductOptions(); } catch (e) { console.warn(e); }
@@ -1000,9 +977,7 @@ function renderAll() {
   try { renderReports(); } catch (e) { console.warn(e); }
 }
 
-// ============================================================
 // MODAL HELPERS
-// ============================================================
 function openModal(id) { const m = $(id); if (m) m.classList.add('open'); }
 function closeModal(id) {
   const m = $(id);
@@ -1012,18 +987,14 @@ function closeModal(id) {
   if (id === 'viewMovementModal') viewingMovementId = null;
 }
 
-// ============================================================
 // ORDER SUCCESS MODAL
-// ============================================================
 function openOrderSuccessModal(orderId) {
   const idEl = $('orderSuccessId');
   if (idEl) idEl.textContent = orderId || '—';
   openModal('orderSuccessModal');
 }
 
-// ============================================================
 // PRODUCT REFERENCES (for details modal)
-// ============================================================
 function renderProductReferences(sku) {
   const refsBox = $('productRefs');
   const refsList = $('productRefsList');
@@ -1052,9 +1023,7 @@ function renderProductReferences(sku) {
   });
 }
 
-// ============================================================
 // VIEW PRODUCT DETAILS
-// ============================================================
 function openViewProductModal(sku) {
   const product = products.find(p => p.sku === sku);
   if (!product) return;
@@ -1077,9 +1046,7 @@ function openViewProductModal(sku) {
   openModal('viewProductModal');
 }
 
-// ============================================================
 // VIEW MOVEMENT DETAILS
-// ============================================================
 function openViewMovementModal(index) {
   const m = stockMovements[index];
   if (!m) return;
@@ -1131,9 +1098,7 @@ function openViewMovementModal(index) {
   openModal('viewMovementModal');
 }
 
-// ============================================================
 // DELETE PRODUCT — WITH REFERENCE PROTECTION
-// ============================================================
 function openDeleteConfirmModal(sku) {
   const product = products.find(p => p.sku === sku);
   if (!product) return;
@@ -1185,9 +1150,7 @@ function openDeleteConfirmModal(sku) {
   openModal('deleteConfirmModal');
 }
 
-// ============================================================
 // RECEIVING
-// ============================================================
 function updateReceivingReview() {
   const supplier = $('supplier')?.value || '';
   const deliveryNo = $('deliveryNo')?.value.trim() || '';
@@ -1307,9 +1270,7 @@ function commitReceipt() {
   showToast(`Received ${quantity} × ${product.name}. Stock updated to ${product.quantity}.`);
 }
 
-// ============================================================
 // LOGIN
-// ============================================================
 function handleLogin(e) {
   if (e) e.preventDefault();
   const loginScreen = $('loginScreen');
@@ -1334,9 +1295,7 @@ function handleLogin(e) {
   showToast('Welcome back, Kim Pogi!');
 }
 
-// ============================================================
 // INIT
-// ============================================================
 (function init() {
   const loginForm = $('loginForm');
   const loginBtn  = $('loginBtn');
@@ -1602,9 +1561,7 @@ function handleLogin(e) {
     }, 180);
   });
 
-  // ============================================================
   // DELETE — normal delete and force delete
-  // ============================================================
   function performDelete(sku, { force } = {}) {
     const product = products.find(p => p.sku === sku);
     if (!product) return;
