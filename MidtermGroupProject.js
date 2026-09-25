@@ -1,8 +1,12 @@
+// ============================================================
 // AUTHENTICATION CREDENTIALS
+// ============================================================
 const VALID_EMAIL = 'kimpogi123@gmail.com';
 const VALID_PASSWORD = 'kimpogi123';
 
+// ============================================================
 // STATE
+// ============================================================
 let products = [];
 let skuCounter = 1000;
 let pendingDeleteSku = null;
@@ -29,8 +33,11 @@ let notifFilter = 'all';
 
 let pendingReceipt = null;
 
+const ACTIVE_ORDER_STATUSES = ['Pending', 'Picking', 'Ready'];
 
+// ============================================================
 // HELPERS
+// ============================================================
 function $(id) { return document.getElementById(id); }
 
 function computeStatus(qty) {
@@ -83,7 +90,19 @@ function formatDateHuman(inputDate) {
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
+// ============================================================
+// REFERENCE LOOKUPS — find orders that use a given product
+// ============================================================
+function findActiveOrderRefs(sku) {
+  return orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status) && o.lines.some(l => l.sku === sku));
+}
+function findCompletedOrderRefs(sku) {
+  return orders.filter(o => o.status === 'Completed' && o.lines.some(l => l.sku === sku));
+}
+
+// ============================================================
 // TOAST
+// ============================================================
 let toastTimeout;
 function showToast(message) {
   const toast = $('toast');
@@ -95,8 +114,9 @@ function showToast(message) {
   toastTimeout = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
-
+// ============================================================
 // INVENTORY
+// ============================================================
 function getFilteredProducts() {
   const term = inventorySearchTerm.toLowerCase().trim();
   return products.filter(p => {
@@ -173,7 +193,9 @@ function renderReceivingProductOptions() {
   sel.value = (current && products.some(p => p.sku === current)) ? current : '';
 }
 
+// ============================================================
 // MOVEMENT HELPERS
+// ============================================================
 function movementBadgeClass(type) {
   if (type === 'Received') return 'received';
   if (type === 'Released') return 'released';
@@ -266,7 +288,6 @@ function renderStockMovements() {
   if (countEl) countEl.textContent = `Showing ${filtered.length} of ${stockMovements.length} movements`;
 }
 
-// ACTIVITIES
 function renderActivities() {
   const list = $('activityList');
   if (!list) return;
@@ -282,13 +303,13 @@ function renderActivities() {
   });
 }
 
-// NOTIFICATIONS (Reports > Notifications tab)
-// Build a list of notification objects from current state.
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
 function buildNotifications() {
   const items = [];
   const now = formatDateTime(new Date());
 
-  // Low-stock alerts
   products.forEach(p => {
     if (p.quantity === 0) {
       items.push({
@@ -309,75 +330,58 @@ function buildNotifications() {
     }
   });
 
-  // Pending orders
   orders.filter(o => o.status === 'Pending').forEach(o => {
     items.push({
-      kind: 'order',
-      unread: true,
+      kind: 'order', unread: true,
       title: `Pending order ${o.id}`,
       detail: `${o.customer} • ${o.lines.length} line item(s) awaiting picking.`,
       time: now
     });
   });
-
-  // Picking orders
   orders.filter(o => o.status === 'Picking').forEach(o => {
     items.push({
-      kind: 'order',
-      unread: false,
+      kind: 'order', unread: false,
       title: `Order ${o.id} in progress`,
       detail: `${o.customer} • Currently being picked.`,
       time: now
     });
   });
-
-  // Ready orders
   orders.filter(o => o.status === 'Ready').forEach(o => {
     items.push({
-      kind: 'order',
-      unread: false,
+      kind: 'order', unread: false,
       title: `Order ${o.id} is Ready`,
       detail: `${o.customer} • Ready for completion and shipment.`,
       time: now
     });
   });
-
-  // Completed orders
   orders.filter(o => o.status === 'Completed').forEach(o => {
     items.push({
-      kind: 'completed',
-      unread: false,
+      kind: 'completed', unread: false,
       title: `Order ${o.id} completed`,
       detail: `${o.customer} • Order fully fulfilled.`,
       time: now
     });
   });
 
-  // New deliveries (Received movements today)
   const today = new Date().toISOString().slice(0, 10);
   stockMovements
     .filter(m => m.type === 'Received' && m.dateTime.startsWith(today))
-    .slice(-5)
-    .reverse()
+    .slice(-5).reverse()
     .forEach(m => {
       items.push({
-        kind: 'delivery',
-        unread: true,
+        kind: 'delivery', unread: true,
         title: `New delivery received`,
         detail: `${m.qtyDelta} × ${m.productName} • Logged by ${m.user} at ${m.dateTime}.`,
         time: m.dateTime
       });
     });
 
-  // Stock adjustments
   stockMovements
     .filter(m => m.type === 'Adjusted')
-    .slice(-5)
-    .reverse()
+    .slice(-5).reverse()
     .forEach(m => {
       items.push({
-        kind: 'adjustment',
-        unread: false,
+        kind: 'adjustment', unread: false,
         title: `Stock adjusted: ${m.productName}`,
         detail: `${m.qtyDelta > 0 ? '+' : ''}${m.qtyDelta} units • New total: ${m.newStock} • ${m.user}`,
         time: m.dateTime
@@ -403,12 +407,10 @@ function notifIconClass(kind) {
 }
 
 function renderNotifications() {
-  // Update tab count
   const all = buildNotifications();
   const countEl = $('notifTabCount');
   if (countEl) countEl.textContent = all.length;
 
-  // Update summary cards
   const lowStockCount = products.filter(p => p.quantity <= 10).length;
   const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
   const today = new Date().toISOString().slice(0, 10);
@@ -426,7 +428,6 @@ function renderNotifications() {
   setVal('notifNewDeliveries', todaysDeliveries);
   setVal('notifCompletedOrders', completedOrdersCount);
 
-  // Render detailed list
   const list = $('notificationListDetailed');
   if (!list) return;
   const filtered = getFilteredNotifications();
@@ -449,9 +450,10 @@ function renderNotifications() {
   });
 }
 
+// ============================================================
 // REPORTS
+// ============================================================
 function renderInventoryReport() {
-  // Summary
   const totalProducts = products.length;
   const totalQty = products.reduce((sum, p) => sum + p.quantity, 0);
   const categories = new Set(products.map(p => p.category));
@@ -467,7 +469,6 @@ function renderInventoryReport() {
   setVal('rptCategoryCount', categories.size);
   setVal('rptSupplierCount', suppliers.size);
 
-  // Breakdown by category
   const body = $('rptInventoryBody');
   if (!body) return;
   if (products.length === 0) {
@@ -495,7 +496,6 @@ function renderInventoryReport() {
     });
   }
 
-  // Full product list
   const listBody = $('rptInventoryListBody');
   if (!listBody) return;
   if (products.length === 0) {
@@ -523,7 +523,6 @@ function renderLowStockReport() {
   const out = products.filter(p => p.quantity === 0);
   const needsRestock = low.length + out.length;
 
-  // Highest shortage = item with minimum quantity (excluding 0? no, include 0 as most urgent)
   let highestShortage = '—';
   if (needsRestock > 0) {
     const sorted = [...low, ...out].sort((a, b) => a.quantity - b.quantity);
@@ -580,7 +579,6 @@ function renderMovementReport() {
   setVal('rptMvOut', releasedUnits);
   setVal('rptMvNet', netChange);
 
-  // Breakdown by type
   const typeBody = $('rptMovementByTypeBody');
   if (typeBody) {
     if (stockMovements.length === 0) {
@@ -606,7 +604,6 @@ function renderMovementReport() {
     }
   }
 
-  // By product
   const prodBody = $('rptMovementByProductBody');
   if (!prodBody) return;
   if (stockMovements.length === 0) {
@@ -651,7 +648,6 @@ function renderOrderReport() {
   setVal('rptOrderInProgress', inProgress);
   setVal('rptOrderCompleted', completed);
 
-  // By status
   const statusBody = $('rptOrderByStatusBody');
   if (statusBody) {
     if (orders.length === 0) {
@@ -677,7 +673,6 @@ function renderOrderReport() {
     }
   }
 
-  // By customer
   const custBody = $('rptOrderByCustomerBody');
   if (!custBody) return;
   if (orders.length === 0) {
@@ -712,8 +707,9 @@ function renderReports() {
   try { renderOrderReport(); } catch (e) { console.warn(e); }
 }
 
-
+// ============================================================
 // DASHBOARD
+// ============================================================
 function updateDashboardCounts() {
   const totalProducts = products.length;
   const availableStock = products.reduce((sum, p) => sum + p.quantity, 0);
@@ -755,8 +751,9 @@ function renderDashboardOrders() {
   });
 }
 
-
+// ============================================================
 // ORDERS
+// ============================================================
 function updateOrderTabCounts() {
   const counts = {
     all: orders.length,
@@ -841,12 +838,15 @@ function renderOrderDetails() {
   if (progressBar) progressBar.style.width = pct + '%';
   if (progressText) progressText.textContent = `${pickedCount} of ${totalCount} item${totalCount === 1 ? '' : 's'} picked`;
 
+  // Stock warnings & orphan detection
   const issues = [];
   order.lines.forEach(line => {
     const product = products.find(p => p.sku === line.sku);
-    const available = product ? product.quantity : 0;
-    if (!product) issues.push(`"${line.name}" was removed from inventory.`);
-    else if (available < line.qty) issues.push(`"${line.name}" needs ${line.qty} but only ${available} in stock.`);
+    if (!product) {
+      issues.push(`"${line.name}" (${line.sku}) is orphaned — the product was removed from inventory.`);
+    } else if (product.quantity < line.qty) {
+      issues.push(`"${line.name}" needs ${line.qty} but only ${product.quantity} in stock.`);
+    }
   });
   if (issues.length > 0) {
     stockWarning.hidden = false;
@@ -862,24 +862,36 @@ function renderOrderDetails() {
     body.innerHTML = '';
     order.lines.forEach((line, idx) => {
       const product = products.find(p => p.sku === line.sku);
+      const isOrphan = !product;
       const available = product ? product.quantity : 0;
+
       let stockClass = 'stock-ok';
       let stockLabel = String(available);
-      if (available === 0) { stockClass = 'stock-out'; stockLabel = `${available} (Out)`; }
+      if (isOrphan) { stockClass = 'stock-out'; stockLabel = '—'; }
+      else if (available === 0) { stockClass = 'stock-out'; stockLabel = `${available} (Out)`; }
       else if (available < line.qty) { stockClass = 'stock-low'; stockLabel = `${available} (Short)`; }
+
       let statusHtml = '';
       let actionHtml = '';
-      if (line.picked) {
+
+      if (isOrphan) {
+        statusHtml = '<span class="pick-status orphan"><i class="fas fa-link-slash"></i> Orphaned</span>';
+        actionHtml = `<button class="btn btn-sm btn-secondary" data-remove-orphan-line="${idx}" type="button" title="Remove orphaned line">
+          <i class="fas fa-trash"></i> Remove line
+        </button>`;
+      } else if (line.picked) {
         statusHtml = '<span class="pick-status picked"><i class="fas fa-check-circle"></i> Picked</span>';
         actionHtml = `<button class="btn btn-sm btn-secondary" data-unpick-line="${idx}" type="button"><i class="fas fa-rotate-left"></i> Undo</button>`;
-      } else if (!product || available < line.qty) {
+      } else if (available < line.qty) {
         statusHtml = '<span class="pick-status blocked"><i class="fas fa-circle-xmark"></i> Insufficient</span>';
         actionHtml = `<button class="btn btn-sm btn-secondary" disabled type="button" title="Not enough stock"><i class="fas fa-ban"></i> Cannot pick</button>`;
       } else {
         statusHtml = '<span class="pick-status pending"><i class="fas fa-circle"></i> Pending</span>';
         actionHtml = `<button class="btn btn-sm btn-primary" data-pick-line="${idx}" type="button"><i class="fas fa-check"></i> Pick</button>`;
       }
+
       const tr = document.createElement('tr');
+      if (isOrphan) tr.classList.add('orphan-row');
       tr.innerHTML = `
         <td>${escapeHtml(line.name)} <small style="color:#a78bfa;">(${escapeHtml(line.sku)})</small></td>
         <td>${line.qty}</td>
@@ -892,13 +904,16 @@ function renderOrderDetails() {
   }
 
   actions.innerHTML = '';
+  const hasOrphans = order.lines.some(l => !products.find(p => p.sku === l.sku));
   const allPicked = totalCount > 0 && pickedCount === totalCount;
   const allAvailable = order.lines.every(line => {
     const product = products.find(p => p.sku === line.sku);
     return product && product.quantity >= line.qty;
   });
 
-  if (order.status === 'Pending') {
+  if (hasOrphans) {
+    actions.innerHTML = `<span class="field-hint" style="color:#b45309;"><i class="fas fa-triangle-exclamation"></i> This order has orphaned lines. Remove them to continue.</span>`;
+  } else if (order.status === 'Pending') {
     actions.innerHTML = `<button class="btn btn-primary" data-order-action="start-picking" type="button"><i class="fas fa-play"></i> Start Picking</button>`;
   } else if (order.status === 'Picking') {
     if (allPicked) {
@@ -965,8 +980,9 @@ function renderDraftOrderLines() {
   });
 }
 
-
+// ============================================================
 // MASTER RENDER
+// ============================================================
 function renderAll() {
   try { renderInventory(); } catch (e) { console.warn(e); }
   try { renderReceivingProductOptions(); } catch (e) { console.warn(e); }
@@ -984,7 +1000,9 @@ function renderAll() {
   try { renderReports(); } catch (e) { console.warn(e); }
 }
 
+// ============================================================
 // MODAL HELPERS
+// ============================================================
 function openModal(id) { const m = $(id); if (m) m.classList.add('open'); }
 function closeModal(id) {
   const m = $(id);
@@ -994,7 +1012,49 @@ function closeModal(id) {
   if (id === 'viewMovementModal') viewingMovementId = null;
 }
 
+// ============================================================
+// ORDER SUCCESS MODAL
+// ============================================================
+function openOrderSuccessModal(orderId) {
+  const idEl = $('orderSuccessId');
+  if (idEl) idEl.textContent = orderId || '—';
+  openModal('orderSuccessModal');
+}
+
+// ============================================================
+// PRODUCT REFERENCES (for details modal)
+// ============================================================
+function renderProductReferences(sku) {
+  const refsBox = $('productRefs');
+  const refsList = $('productRefsList');
+  if (!refsBox || !refsList) return;
+
+  const activeRefs = findActiveOrderRefs(sku);
+  const completedRefs = findCompletedOrderRefs(sku);
+  const allRefs = [...activeRefs, ...completedRefs];
+
+  if (allRefs.length === 0) {
+    refsBox.hidden = true;
+    refsList.innerHTML = '';
+    return;
+  }
+
+  refsBox.hidden = false;
+  refsList.innerHTML = '';
+  allRefs.forEach(o => {
+    const li = document.createElement('li');
+    const isActive = ACTIVE_ORDER_STATUSES.includes(o.status);
+    const tag = isActive
+      ? '<strong>(active)</strong>'
+      : '<em>(completed)</em>';
+    li.innerHTML = `${tag} Order ${escapeHtml(o.id)} — ${escapeHtml(o.customer)} [${escapeHtml(o.status)}]`;
+    refsList.appendChild(li);
+  });
+}
+
+// ============================================================
 // VIEW PRODUCT DETAILS
+// ============================================================
 function openViewProductModal(sku) {
   const product = products.find(p => p.sku === sku);
   if (!product) return;
@@ -1012,14 +1072,17 @@ function openViewProductModal(sku) {
   $('detailStatusText').textContent = status.label;
   const lastMovement = [...stockMovements].reverse().find(m => m.productName === product.name);
   $('detailUpdated').textContent = lastMovement ? lastMovement.dateTime : '—';
+
+  renderProductReferences(sku);
   openModal('viewProductModal');
 }
 
+// ============================================================
 // VIEW MOVEMENT DETAILS
+// ============================================================
 function openViewMovementModal(index) {
   const m = stockMovements[index];
   if (!m) return;
-
   viewingMovementId = index;
 
   $('mvDetailType').textContent = m.type;
@@ -1068,7 +1131,63 @@ function openViewMovementModal(index) {
   openModal('viewMovementModal');
 }
 
+// ============================================================
+// DELETE PRODUCT — WITH REFERENCE PROTECTION
+// ============================================================
+function openDeleteConfirmModal(sku) {
+  const product = products.find(p => p.sku === sku);
+  if (!product) return;
+  pendingDeleteSku = sku;
+
+  const nameEl = $('deleteProductName');
+  const subtextEl = $('deleteConfirmSubtext');
+  const blockedBox = $('deleteBlockedWarning');
+  const blockedList = $('deleteBlockedOrdersList');
+  const historyBox = $('deleteHistoryWarning');
+  const historyText = $('deleteHistoryText');
+  const confirmBtn = $('confirmDeleteBtn');
+  const forceBtn = $('forceDeleteBtn');
+
+  nameEl.textContent = `"${product.name}" (${product.sku})`;
+  subtextEl.textContent = 'This action cannot be undone. The product will be permanently removed from the inventory.';
+
+  const activeRefs = findActiveOrderRefs(sku);
+  const completedRefs = findCompletedOrderRefs(sku);
+
+  // Blocked warning — product used in active orders
+  if (activeRefs.length > 0) {
+    blockedBox.hidden = false;
+    blockedList.innerHTML = '';
+    activeRefs.forEach(o => {
+      const li = document.createElement('li');
+      li.textContent = `${product.name} is part of order ${o.id} (${o.status} — ${o.customer})`;
+      blockedList.appendChild(li);
+    });
+    confirmBtn.hidden = true;      // hide normal Delete
+    forceBtn.hidden = false;       // show Force Delete
+  } else {
+    blockedBox.hidden = true;
+    blockedList.innerHTML = '';
+    confirmBtn.hidden = false;
+    forceBtn.hidden = true;
+  }
+
+  // History warning — completed orders still referencing the product
+  if (completedRefs.length > 0) {
+    historyBox.hidden = false;
+    const list = completedRefs.map(o => o.id).join(', ');
+    historyText.textContent = `This product also appears in completed order(s): ${list}. Deleting it will not affect those completed records.`;
+  } else {
+    historyBox.hidden = true;
+    historyText.textContent = '';
+  }
+
+  openModal('deleteConfirmModal');
+}
+
+// ============================================================
 // RECEIVING
+// ============================================================
 function updateReceivingReview() {
   const supplier = $('supplier')?.value || '';
   const deliveryNo = $('deliveryNo')?.value.trim() || '';
@@ -1188,7 +1307,9 @@ function commitReceipt() {
   showToast(`Received ${quantity} × ${product.name}. Stock updated to ${product.quantity}.`);
 }
 
+// ============================================================
 // LOGIN
+// ============================================================
 function handleLogin(e) {
   if (e) e.preventDefault();
   const loginScreen = $('loginScreen');
@@ -1213,7 +1334,9 @@ function handleLogin(e) {
   showToast('Welcome back, Kim Pogi!');
 }
 
+// ============================================================
 // INIT
+// ============================================================
 (function init() {
   const loginForm = $('loginForm');
   const loginBtn  = $('loginBtn');
@@ -1239,7 +1362,6 @@ function handleLogin(e) {
     showToast('Logged out successfully.');
   });
 
-  // NAVIGATION
   const navItems = document.querySelectorAll('.nav-item[data-panel]');
   const panels   = document.querySelectorAll('.panel');
   const panelTitle = $('panelTitle');
@@ -1286,21 +1408,24 @@ function handleLogin(e) {
 
   $('globalRefreshBtn')?.addEventListener('click', () => { renderAll(); showToast('Data refreshed.'); });
 
-  // MODAL CLOSE
   document.querySelectorAll('[data-close]').forEach(btn => {
     btn.addEventListener('click', () => closeModal(btn.dataset.close));
   });
-  ['addProductModal', 'editProductModal', 'deleteConfirmModal', 'newOrderModal', 'viewProductModal', 'viewMovementModal', 'receivingConfirmModal'].forEach(id => {
+  ['addProductModal', 'editProductModal', 'deleteConfirmModal', 'newOrderModal', 'viewProductModal', 'viewMovementModal', 'receivingConfirmModal', 'orderSuccessModal'].forEach(id => {
     const modal = $(id);
     if (!modal) return;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(id); });
   });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    ['addProductModal', 'editProductModal', 'deleteConfirmModal', 'newOrderModal', 'viewProductModal', 'viewMovementModal', 'receivingConfirmModal'].forEach(id => {
+    ['addProductModal', 'editProductModal', 'deleteConfirmModal', 'newOrderModal', 'viewProductModal', 'viewMovementModal', 'receivingConfirmModal', 'orderSuccessModal'].forEach(id => {
       const m = $(id);
       if (m && m.classList.contains('open')) closeModal(id);
     });
+  });
+
+  $('orderSuccessOkBtn')?.addEventListener('click', () => {
+    closeModal('orderSuccessModal');
   });
 
   // INVENTORY SEARCH + FILTER
@@ -1477,18 +1602,61 @@ function handleLogin(e) {
     }, 180);
   });
 
-  $('confirmDeleteBtn')?.addEventListener('click', () => {
-    if (!pendingDeleteSku) return;
-    const sku = pendingDeleteSku;
+  // ============================================================
+  // DELETE — normal delete and force delete
+  // ============================================================
+  function performDelete(sku, { force } = {}) {
     const product = products.find(p => p.sku === sku);
-    const name = product ? product.name : sku;
+    if (!product) return;
+    const name = product.name;
+
+    const activeRefs = findActiveOrderRefs(sku);
+    if (activeRefs.length > 0 && !force) {
+      showToast('Cannot delete: product is used in active orders.');
+      return;
+    }
+
+    // If forced, orphan the affected order lines
+    if (activeRefs.length > 0 && force) {
+      activeRefs.forEach(order => {
+        order.lines = order.lines.map(line => {
+          if (line.sku !== sku) return line;
+          return {
+            ...line,
+            orphaned: true,
+            name: `${line.name} (REMOVED)`
+          };
+        });
+      });
+      activities.push({
+        icon: 'fas fa-triangle-exclamation',
+        text: `Force-deleted ${name} (${sku}) — ${activeRefs.length} order line(s) orphaned.`
+      });
+    } else {
+      activities.push({ icon: 'fas fa-trash', text: `Deleted product ${name} (${sku})` });
+    }
+
     products = products.filter(p => p.sku !== sku);
-    activities.push({ icon: 'fas fa-trash', text: `Deleted product ${name} (${sku})` });
+
     renderAll();
     closeModal('deleteConfirmModal');
-    showToast(`Deleted "${name}" (${sku}).`);
+    showToast(force
+      ? `Force-deleted "${name}" (${sku}).`
+      : `Deleted "${name}" (${sku}).`
+    );
+  }
+
+  $('confirmDeleteBtn')?.addEventListener('click', () => {
+    if (!pendingDeleteSku) return;
+    performDelete(pendingDeleteSku, { force: false });
   });
 
+  $('forceDeleteBtn')?.addEventListener('click', () => {
+    if (!pendingDeleteSku) return;
+    performDelete(pendingDeleteSku, { force: true });
+  });
+
+  // INVENTORY TABLE ACTIONS
   $('inventoryBody')?.addEventListener('click', (e) => {
     const btn = e.target.closest('.icon-btn');
     if (btn) {
@@ -1509,11 +1677,7 @@ function handleLogin(e) {
         setTimeout(() => $('editProductName')?.focus(), 50);
       }
       if (action === 'delete') {
-        const product = products.find(p => p.sku === sku);
-        if (!product) return;
-        pendingDeleteSku = sku;
-        $('deleteProductName').textContent = `"${product.name}" (${product.sku})`;
-        openModal('deleteConfirmModal');
+        openDeleteConfirmModal(sku);
       }
       return;
     }
@@ -1613,13 +1777,14 @@ function handleLogin(e) {
       id, customer,
       createdAt: formatDateShort(new Date()),
       status: 'Pending',
-      lines: draftOrderLines.map(l => ({ sku: l.sku, name: l.name, qty: l.qty, picked: false }))
+      lines: draftOrderLines.map(l => ({ sku: l.sku, name: l.name, qty: l.qty, picked: false, orphaned: false }))
     };
     orders.push(order);
     activities.push({ icon: 'fas fa-clipboard-list', text: `New order ${id} for ${customer} (${order.lines.length} item(s))` });
     renderAll();
     closeModal('newOrderModal');
     showToast(`Order ${id} created for ${customer}.`);
+    openOrderSuccessModal(id);
     selectedOrderId = id;
     renderOrderDetails();
   });
@@ -1643,6 +1808,25 @@ function handleLogin(e) {
   $('orderDetailsSection')?.addEventListener('click', (e) => {
     const order = orders.find(o => o.id === selectedOrderId);
     if (!order) return;
+
+    // Remove orphaned line
+    const removeOrphanBtn = e.target.closest('[data-remove-orphan-line]');
+    if (removeOrphanBtn) {
+      const idx = parseInt(removeOrphanBtn.dataset.removeOrphanLine, 10);
+      if (order.lines[idx]) {
+        const removed = order.lines[idx];
+        order.lines.splice(idx, 1);
+        activities.push({ icon: 'fas fa-trash', text: `Removed orphaned line "${removed.name}" from ${order.id}` });
+        // If the order has no more lines, auto-mark as Completed to prevent being stuck
+        if (order.lines.length === 0) {
+          order.status = 'Completed';
+          activities.push({ icon: 'fas fa-circle-check', text: `Order ${order.id} auto-completed (no items remaining)` });
+        }
+        renderAll();
+        showToast('Orphaned line removed.');
+      }
+      return;
+    }
 
     const pickBtn = e.target.closest('[data-pick-line]');
     if (pickBtn) {
@@ -1671,6 +1855,11 @@ function handleLogin(e) {
     const action = actionBtn.dataset.orderAction;
 
     if (action === 'start-picking') {
+      // Guard: block starting if there are orphans
+      if (order.lines.some(l => l.orphaned || !products.find(p => p.sku === l.sku))) {
+        showToast('Remove orphaned lines before starting picking.');
+        return;
+      }
       order.status = 'Picking';
       activities.push({ icon: 'fas fa-play', text: `Started picking ${order.id} (${order.customer})` });
       renderAll();
@@ -1705,7 +1894,7 @@ function handleLogin(e) {
         });
       });
       order.status = 'Completed';
-      activities.push({ icon: 'fas fa-check-circle', text: `Order ${order.id} completed for ${order.customer}` });
+      activities.push({ icon: 'fas fa-circle-check', text: `Order ${order.id} completed for ${order.customer}` });
       renderAll();
       showToast(`Order ${order.id} completed. Stock released.`);
     }
@@ -1782,7 +1971,6 @@ function handleLogin(e) {
     });
   });
 
-  // EXPORT
   $('exportReportBtn')?.addEventListener('click', () => {
     const names = {
       notifications: 'Notifications',
@@ -1801,5 +1989,5 @@ function handleLogin(e) {
   if (loginScreen) loginScreen.style.display = 'flex';
   if (mainApp) mainApp.style.display = 'none';
 
-  console.log('[WarehouseFlow] Initialized. Reports & Notifications ready.');
+  console.log('[WarehouseFlow] Initialized. Referential integrity enabled.');
 })();

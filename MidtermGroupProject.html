@@ -505,8 +505,6 @@
 
       <!-- ===== REPORTS & NOTIFICATIONS ===== -->
       <article id="panel-reports" class="panel" aria-labelledby="panelTitle">
-
-        <!-- Top-level tabs -->
         <header class="orders-toolbar">
           <div class="order-tabs" role="tablist" aria-label="Reports and notifications">
             <button class="order-tab active" data-reports-tab="notifications" role="tab" aria-selected="true">
@@ -534,9 +532,7 @@
           </div>
         </header>
 
-        <!-- ============ TAB: NOTIFICATIONS ============ -->
         <section class="reports-panel active" data-reports-content="notifications">
-          <!-- Notification summary cards -->
           <section class="card-grid" aria-label="Notification summary">
             <article class="stat-card warning">
               <span class="label">Low-stock alerts</span>
@@ -560,7 +556,6 @@
             </article>
           </section>
 
-          <!-- Notification filter tabs -->
           <div class="notif-filters">
             <button class="notif-filter active" data-notif-filter="all">
               <i class="fas fa-list" aria-hidden="true"></i> All
@@ -584,7 +579,6 @@
           </ul>
         </section>
 
-        <!-- ============ TAB: INVENTORY REPORT ============ -->
         <section class="reports-panel" data-reports-content="inventory">
           <div class="report-summary-grid">
             <article class="report-card">
@@ -641,7 +635,6 @@
           </table>
         </section>
 
-        <!-- ============ TAB: LOW-STOCK REPORT ============ -->
         <section class="reports-panel" data-reports-content="lowstock">
           <div class="report-summary-grid">
             <article class="report-card warning">
@@ -681,7 +674,6 @@
           </table>
         </section>
 
-        <!-- ============ TAB: STOCK MOVEMENT REPORT ============ -->
         <section class="reports-panel" data-reports-content="movement">
           <div class="report-summary-grid">
             <article class="report-card">
@@ -735,7 +727,6 @@
           </table>
         </section>
 
-        <!-- ============ TAB: ORDER REPORT ============ -->
         <section class="reports-panel" data-reports-content="orders">
           <div class="report-summary-grid">
             <article class="report-card">
@@ -787,13 +778,12 @@
             </tbody>
           </table>
         </section>
-
       </article>
     </section>
   </section>
 </main>
 
-<!-- VIEW PRODUCT DETAILS MODAL-->
+<!-- VIEW PRODUCT DETAILS MODAL                                   -->
 <div id="viewProductModal" class="modal-overlay">
   <article class="modal-card">
     <header class="modal-header">
@@ -839,6 +829,12 @@
           <dd id="detailUpdated">—</dd>
         </div>
       </dl>
+
+      <!-- Product references: shows any orders using this product -->
+      <aside class="product-refs" id="productRefs" hidden>
+        <h4><i class="fas fa-link" aria-hidden="true"></i> Referenced by Orders</h4>
+        <ul id="productRefsList"></ul>
+      </aside>
     </section>
 
     <footer class="modal-actions">
@@ -911,7 +907,7 @@
   </article>
 </div>
 
-<!-- ADD PRODUCT MODAL-->
+<!-- ADD PRODUCT MODAL                                            -->
 <div id="addProductModal" class="modal-overlay">
   <article class="modal-card">
     <header class="modal-header">
@@ -933,7 +929,7 @@
 
         <div class="form-row">
           <label for="newProductName">Product Name <span class="req">*</span></label>
-          <input type="text" id="newProductName" placeholder="Product Name" required>
+          <input type="text" id="newProductName" placeholder="e.g. Wireless Mouse" required>
         </div>
 
         <div class="form-row">
@@ -963,12 +959,12 @@
           <label for="newSupplier">Supplier <span class="req">*</span></label>
           <select id="newSupplier" required>
             <option value="" disabled selected>Select a supplier</option>
-                <option>AprilAnne Industries</option>
-                <option>Darwin Global Co.</option>
-                <option>Kimmeng Global Industries</option>
-                <option>Kian Trading</option>
-                <option>Frecia Enterprises</option>
-                <option>Eirene Corporation</option>
+            <option>AprilAnne Industries</option>
+            <option>Darwin Global Co.</option>
+            <option>Kimmeng Global Industries</option>
+            <option>Kian Trading</option>
+            <option>Frecia Enterprises</option>
+            <option>Eirene Corporation</option>
           </select>
         </div>
 
@@ -991,8 +987,7 @@
   </article>
 </div>
 
-
-<!-- EDIT PRODUCT MODAL-->
+<!-- EDIT PRODUCT MODAL                                           -->
 <div id="editProductModal" class="modal-overlay">
   <article class="modal-card">
     <header class="modal-header">
@@ -1045,11 +1040,11 @@
           <select id="editSupplier" required>
             <option value="" disabled>Select a supplier</option>
             <option>AprilAnne Industries</option>
-                <option>Darwin Global Co.</option>
-                <option>Kimmeng Global Industries</option>
-                <option>Kian Trading</option>
-                <option>Frecia Enterprises</option>
-                <option>Eirene Corporation</option>
+            <option>Darwin Global Co.</option>
+            <option>Kimmeng Global Industries</option>
+            <option>Kian Trading</option>
+            <option>Frecia Enterprises</option>
+            <option>Eirene Corporation</option>
           </select>
         </div>
 
@@ -1071,7 +1066,7 @@
   </article>
 </div>
 
-<!-- DELETE CONFIRMATION MODAL-->
+<!-- DELETE CONFIRMATION MODAL                                    -->
 <div id="deleteConfirmModal" class="modal-overlay">
   <article class="modal-card modal-card-sm">
     <header class="modal-header modal-header-danger">
@@ -1085,22 +1080,45 @@
       <p class="confirm-text">
         Are you sure you want to delete <strong id="deleteProductName">this product</strong>?
       </p>
-      <p class="confirm-subtext">
+      <p class="confirm-subtext" id="deleteConfirmSubtext">
         This action cannot be undone. The product will be permanently removed from the inventory.
       </p>
+
+      <!-- Blocked-by-orders warning (shown when product is used in active orders) -->
+      <aside class="delete-blocked" id="deleteBlockedWarning" hidden>
+        <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+        <div>
+          <p class="delete-blocked-title">This product is currently used in active orders</p>
+          <ul class="delete-blocked-list" id="deleteBlockedOrdersList"></ul>
+          <p class="delete-blocked-hint">
+            Complete or cancel those orders first, or use <strong>Force Delete</strong> below to remove the product and orphan those order lines.
+          </p>
+        </div>
+      </aside>
+
+      <!-- History references (completed orders) — informational only -->
+      <aside class="delete-history" id="deleteHistoryWarning" hidden>
+        <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
+        <div>
+          <p class="delete-history-title">Historical references (completed orders)</p>
+          <p class="delete-history-text" id="deleteHistoryText"></p>
+        </div>
+      </aside>
     </section>
 
-    <footer class="modal-actions">
+    <footer class="modal-actions" id="deleteModalActions">
       <button type="button" class="btn btn-secondary" data-close="deleteConfirmModal">Cancel</button>
       <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
         <i class="fas fa-trash" aria-hidden="true"></i> Yes, Delete
+      </button>
+      <button type="button" class="btn btn-danger" id="forceDeleteBtn" hidden>
+        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Force Delete
       </button>
     </footer>
   </article>
 </div>
 
-
-<!-- RECEIVING CONFIRMATION MODAL-->
+<!-- RECEIVING CONFIRMATION MODAL                                 -->
 <div id="receivingConfirmModal" class="modal-overlay">
   <article class="modal-card modal-card-md">
     <header class="modal-header">
@@ -1160,7 +1178,7 @@
 </div>
 
 <!-- NEW ORDER MODAL                                              -->
-<div id="newOrderModal" class="modal-overlay">
+\<div id="newOrderModal" class="modal-overlay">
   <article class="modal-card" style="width: 640px;">
     <header class="modal-header">
       <h3><i class="fas fa-clipboard-plus" aria-hidden="true"></i> New Order</h3>
@@ -1219,6 +1237,28 @@
         </button>
       </footer>
     </form>
+  </article>
+</div>
+
+<!-- ORDER SUCCESS MODAL                                          -->
+<div id="orderSuccessModal" class="modal-overlay">
+  <article class="modal-card modal-card-sm order-success-card">
+    <section class="order-success-body">
+      <div class="order-success-check">
+        <i class="fas fa-check" aria-hidden="true"></i>
+      </div>
+      <h2 class="order-success-title">Thank you!</h2>
+      <p class="order-success-message">Your order has been placed.</p>
+      <p class="order-success-id">
+        Order Number: <strong id="orderSuccessId">—</strong>
+      </p>
+    </section>
+
+    <footer class="modal-actions order-success-actions">
+      <button type="button" class="btn btn-primary" id="orderSuccessOkBtn">
+        <i class="fas fa-check-circle" aria-hidden="true"></i> Great, thanks!
+      </button>
+    </footer>
   </article>
 </div>
 
